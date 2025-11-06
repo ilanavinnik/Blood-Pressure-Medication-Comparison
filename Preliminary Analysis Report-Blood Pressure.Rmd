@@ -1,0 +1,104 @@
+---
+title: 'Preliminary Analysis Report: Comparison of Three Drugs for Reducing Arterial
+  Pressure'
+author: "Ilana Vinnik"
+date: "2024-08-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+```
+
+## Introduction
+
+This preliminary analysis examines the effectiveness of three different drugs in reducing systolic blood pressure. The dataset includes systolic pressure measurements taken before and after treatment for individuals randomly assigned to one of three drug groups. The analysis aims to provide an initial, non-inferential overview of the data using descriptive statistics and visualizations. A full inferential analysis will follow in subsequent work.
+
+
+## Descriptive Analysis
+
+### Summary Statistics
+```{r, echo=FALSE}
+bloodpressurestudy <- read.csv("bloodpressurestudy.csv")
+# Calculate summary statistics
+summary_stats <- bloodpressurestudy %>%
+  group_by(drug) %>%
+  summarise(
+    Pre_Mean = mean(before, na.rm = TRUE),
+    Pre_SD = sd(before, na.rm = TRUE),
+    Post_Mean = mean(after, na.rm = TRUE),
+    Post_SD = sd(after, na.rm = TRUE),
+    Mean_Difference = mean(after - before, na.rm = TRUE),
+    SD_Difference = sd(after - before, na.rm = TRUE),
+    Median_Difference = median(after - before, na.rm = TRUE),
+    Min_Difference = min(after - before, na.rm = TRUE),
+    Max_Difference = max(after - before, na.rm = TRUE)
+  )
+# Format the summary statistics table using kable and kableExtra
+summary_stats_table <- summary_stats %>%
+  kable(
+    format = "html",
+    col.names = c("Drug", "Pre-Treatment Mean", "Pre-Treatment SD", "Post-Treatment Mean", "Post-Treatment SD",
+                   "Mean Difference", "SD Difference", "Median Difference", "Min Difference", "Max Difference"),
+    caption = "Summary Statistics for Each Drug"
+  ) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = FALSE)
+
+# Print the table
+summary_stats_table
+
+```
+-**Mean Difference**: Moexipril has the largest mean reduction in blood pressure, followed by Lisinopril and Ramipril.
+
+-**Standard Deviation of Differences**: Moexipril also has the smallest variation in the reduction of blood pressure, which could suggest more consistent results among individuals.
+
+### Visual Analysis
+
+```{r bar-chart, echo=FALSE, fig.width=8, fig.height=6}
+library(tidyverse)
+library(ggplot2)
+
+# Reshape data from wide to long format
+bloodpressure_long <- bloodpressurestudy %>%
+  pivot_longer(cols = c(before, after), names_to = "time", values_to = "pressure") %>%
+  mutate(time = factor(recode(time, "before" = "Before Treatment", "after" = "After Treatment"),
+                       levels = c("Before Treatment", "After Treatment")))
+
+# Create bar chart
+ggplot(bloodpressure_long, aes(x = drug, y = pressure, fill = time)) +
+  geom_bar(stat = "summary", fun = "mean", position = position_dodge(width = 0.8), width = 0.7) +
+  labs(title = "Average Systolic Pressure Before and After Treatment by Drug",
+       x = NULL,  # Remove x-axis title
+       y = "Average Systolic Pressure",
+       fill = "Measurement Time") +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),  # Remove major gridlines
+    panel.grid.minor = element_blank(),  # Remove minor gridlines
+    panel.background = element_blank(),  # Remove panel background
+    axis.line = element_line(colour = "black"),  # Add axis lines for clarity
+    plot.title = element_text(hjust = 0.5),  # Center the plot title
+    axis.text.x = element_text(angle = 0, hjust = 0.5)  # Set x-axis text to horizontal
+  ) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove space between bars and axis
+  scale_fill_manual(values = c("Before Treatment" = "blue", "After Treatment" = "red"))
+
+```
+
+**Moexipril**: Exhibits the most substantial drop in average systolic pressure from before to after treatment, the most among the three drugs. The post-treatment bar is considerably lower than the pre-treatment bar, indicating a strong effect of the drug.
+
+## Plan for Full Analysis
+
+To comprehensively analyze the effectiveness of the three drugs in reducing systolic blood pressure, I will perform an Analysis of Variance (ANOVA) to determine if there are significant differences in the mean reductions among the drugs. If ANOVA indicates significant differences, Tukey’s Honestly Significant Difference (HSD) test will be used to identify which specific drug pairs exhibit significant differences.
+Additionally, to investigate the claim that individuals were assigned randomly to the drugs, I will analyze baseline systolic pressures to check for any significant differences among the groups before treatment.Use Analysis of Variance (ANOVA) to test if there are significant differences in baseline systolic pressure among the three drug groups. This will help assess whether the random assignment was effective or if there are pre-existing differences that might affect the results.
+
+## Conclusion
+
+The preliminary analysis has provided valuable insights into the effectiveness of the three drugs in reducing systolic blood pressure, with Moexipril showing the most significant mean reduction. The next steps involve a detailed inferential analysis using ANOVA and Tukey’s HSD test to validate these findings and determine which drug(s) are statistically significantly different from one another. Additionally, an examination of baseline systolic pressures will be conducted to ensure that the random assignment of individuals to drug groups was effective and that any observed effects are not due to pre-existing differences in blood pressure.

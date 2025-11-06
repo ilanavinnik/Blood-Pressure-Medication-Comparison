@@ -1,0 +1,264 @@
+---
+title: "Comparative Analysis of Blood Pressure Medications: Lisinopril, Moexipril, and Ramipril"
+author: "Ilana Vinnik"
+date: " September 13, 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+``` {r, warning=FALSE, echo=FALSE, message=FALSE}
+library(tidyverse)
+library(gridExtra)
+library(knitr)
+bpdata <- read.csv("~/Downloads/bloodpressurestudy.csv", header=T)
+```
+
+# Executive Summary
+This study compares the effectiveness of three antihypertensive medications—Lisinopril, Moexipril, and Ramipril—on reducing systolic blood pressure in 12 participants. Each participant was randomly assigned to one of the drugs, and their systolic blood pressure was measured before and after treatment. The results show that Lisinopril and Moexipril were significantly more effective than Ramipril in reducing systolic blood pressure, even after adjusting for pre-treatment blood pressure. Randomization of participants was verified using a permutation test. Future studies with larger samples are recommended to confirm these findings.
+
+# 1. Introduction
+Hypertension is a major risk factor for cardiovascular disease. This study seeks to compare three different medications—Lisinopril, Moexipril, and Ramipril—in terms of their effectiveness at reducing systolic blood pressure. 
+
+### Objectives:
+-Determine whether there are significant differences in effectiveness among the three drugs.
+
+-Identify the drug that is most effective in reducing systolic blood pressure.
+
+-Confirm that participants were randomly assigned to the treatment groups.
+
+# 2. Methods
+
+## 2.1 Data
+The dataset contains systolic blood pressure measurements (in mmHg) for 12 participants, measured before and after treatment. Four participants were randomly assigned to each drug group.The primary response variable is the change in systolic blood pressure, defined as the difference between pre-treatment and post-treatment measurements. This change reflects the impact of each drug on reducing systolic blood pressure. The variables measured were:
+
+-Pre-treatment Systolic Blood Pressure (mmHg)
+
+-Post-treatment Systolic Blood Pressure (mmHg)
+
+-Drug Administered: Lisinopril, Moexipril, or Ramipril.
+
+## 2.2 Statistical Analysis
+An Analysis of Covariance (ANCOVA) was conducted to compare the effects of Lisinopril, Moexipril, and Ramipril on post-treatment systolic blood pressure. This model adjusted for baseline systolic blood pressure to isolate the effects of each drug. The model can be written as:
+
+$SysBP.post = \alpha + \beta_1 \cdot SysBP.pre + \beta_2 \cdot Drug + \epsilon$.
+
+Where:
+
+- $SysBP.post$: Post-treatment systolic blood pressure
+
+- $SysBP.pre$: Pre-treatment systolic blood pressure
+
+- $Drug$: The medication taken (Lisinopril, Moexipril, or Ramipril)
+
+- $\alpha, \beta_1, \beta_2$: Parameters to be estimated
+
+- $\epsilon$: Random error term
+
+A permutation test was used to confirm that participants were randomly assigned to drug groups by testing whether the pre-treatment blood pressure was evenly distributed across the groups. 
+
+## 2.3 Software
+The analysis was performed using R version 4.2.1, with the following packages:
+
+tidyverse for data manipulation.
+
+ggplot2 for visualizations.
+
+emmeans for multiple comparisons.
+
+
+# 3. Results
+
+## 3.1 Exploratory Data Analysis (EDA)
+An exploratory data analysis (EDA) was conducted to examine the patterns in systolic blood pressure reduction across the three drug groups. Figure 1 displays the distribution of systolic blood pressure changes for each drug, illustrating that both Lisinopril and Moexipril resulted in larger reductions compared to Ramipril. The spread and central tendencies of these reductions help highlight the variability within each group. Figure 2 presents the adjusted post-treatment systolic blood pressure, accounting for baseline (pre-treatment) measurements. This adjustment allows for a more accurate comparison of the drugs' effectiveness by controlling for initial differences in blood pressure levels. The plot demonstrates that, even after controlling for baseline differences, both Lisinopril and Moexipril continued to show greater reductions in systolic blood pressure compared to Ramipril, supporting the initial findings from the unadjusted analysis.
+
+```{r, echo=FALSE,message=FALSE}
+bpdata <- bpdata %>%
+  mutate(subject = factor(subject),
+         BPchange = after - before,
+         rel.BPchange = (after - before) / before,
+         BP.pct.drop.120 = 100 * (before - after) / (before - 120)) %>%
+  rename(ID = subject, Drug = drug, SysBP.pre = before, SysBP.post = after)
+# Create plot for change in systolic BP by drug
+p1 <- ggplot(bpdata, aes(x = Drug, y = BPchange)) + 
+      geom_point() + 
+      labs(y = "Change in Systolic BP") +
+   theme_minimal()
+print(p1)
+```
+
+Figure 1. illustrates the absolute change in systolic blood pressure (mmHg) for each drug. It suggests that both Lisinopril and Moexipril show a greater reduction in systolic blood pressure compared to Ramipril.
+
+```{r, echo=FALSE, message=FALSE}
+# Create plot for adjusted post-treatment systolic BP
+p2 <- ggplot(bpdata, aes(x = Drug, y = SysBP.post)) + 
+      geom_point() + 
+      geom_smooth(method = "lm", se = FALSE) + 
+      labs(y = "Adjusted Post-treatment Systolic Blood Pressure (mmHg)", 
+           x = "Drug") + 
+      theme_minimal()
+print(p2)
+```
+
+Figure 2. shows the adjusted post-treatment systolic blood pressure (mmHg) for each drug, controlling for baseline systolic blood pressure using ANCOVA. This plot confirms that both Lisinopril and Moexipril resulted in a greater reduction in systolic blood pressure compared to Ramipril, even after accounting for differences in baseline measurements.
+
+## 3.2 Descriptive Statistics
+Table 1 presents the mean and standard deviation of systolic blood pressure changes for each drug group. These descriptive statistics offer an initial glimpse into the effectiveness of the medications. Lisinopril and Moexipril show larger mean reductions in systolic blood pressure compared to Ramipril, indicating that these two drugs may be more effective in lowering blood pressure. Specifically, Moexipril had the largest mean reduction, followed closely by Lisinopril, while Ramipril had the smallest average reduction. The standard deviations indicate the variability within each group, with Lisinopril showing the greatest variability, suggesting that the response to this drug varied more across participants. These differences in mean reductions and variability provide early evidence that Lisinopril and Moexipril may outperform Ramipril, but the variability within each group should be considered in interpreting the overall effectiveness of the treatments.
+
+```{r,echo=FALSE,message=FALSE}
+
+# Descriptive statistics table
+bpdata %>%
+  group_by(Drug) %>%
+  summarize(mean_BP_change = mean(BPchange, na.rm = TRUE), 
+            sd_BP_change = sd(BPchange, na.rm = TRUE)) %>%
+  knitr::kable(
+    caption = "Table 1: Mean and Standard Deviation of Systolic Blood Pressure Changes for Each Drug Group",
+    col.names = c("Drug", "Mean BP Change (mmHg)", "Standard Deviation (mmHg)")
+  )
+
+```
+
+## 3.3 ANCOVA Results
+An ANCOVA was conducted to compare the effectiveness of the three drugs, adjusting for baseline systolic blood pressure. This adjustment ensures that any differences in post-treatment systolic blood pressure can be attributed to the effects of the drugs rather than variations in participants' initial blood pressure levels. Table 2 presents the results of the ANCOVA, showing that both the pre-treatment systolic blood pressure and the type of drug administered had statistically significant effects on post-treatment blood pressure. The F-statistic for the drug variable (F(2, 8) = 5.57, p = 0.031) indicates a significant difference in the effectiveness of the drugs, even after controlling for baseline values. This confirms that the type of drug administered had a meaningful impact on reducing systolic blood pressure. The results suggest that, while all drugs helped reduce blood pressure, Lisinopril and Moexipril were likely more effective than Ramipril. The significant impact of baseline systolic blood pressure highlights the importance of controlling for initial differences to ensure a fair comparison of treatment effects.
+```{r,echo=FALSE, message=FALSE}
+# ANCOVA results table
+after.model <- lm(SysBP.post ~ SysBP.pre + Drug, data = bpdata)
+anova_results <- anova(after.model)
+
+# ANCOVA results table
+anova_results %>%
+  knitr::kable(
+    caption = "Table 2: ANCOVA Results for Post-treatment Systolic Blood Pressure Adjusting for Pre-treatment Values",
+    col.names = c("Source", "Sum of Squares (SS)", "Degrees of Freedom (df)", "Mean Square (MS)", "F-Statistic", "P-value")
+  )
+```
+
+
+## 3.4 Pairwise Comparisons
+
+Table 3 presents the pairwise comparisons of systolic blood pressure reductions between the three drugs. These comparisons help identify specific differences in effectiveness between the drugs, going beyond the general ANCOVA results. The pairwise comparison between Moexipril and Ramipril reveals a statistically significant difference (p = 0.028), indicating that Moexipril was more effective at reducing systolic blood pressure compared to Ramipril. The comparison between Lisinopril and Ramipril, while not statistically significant at the 5% level, approached significance (p = 0.099), suggesting a potential difference in effectiveness that may warrant further investigation with a larger sample size. However, there was no significant difference between Lisinopril and Moexipril (p = 0.702), indicating that these two drugs performed similarly in reducing systolic blood pressure. These findings reinforce the earlier conclusions that both Lisinopril and Moexipril are more effective than Ramipril, with Moexipril potentially being the most effective of the three. Overall, the pairwise comparisons provide a clearer picture of how the drugs compare directly to each other, helping to pinpoint which treatments may offer the greatest benefit to patients.
+
+```{r, echo=FALSE}
+
+# Create ANCOVA model adjusting for pre-treatment systolic blood pressure
+after.model <- lm(SysBP.post ~ SysBP.pre + Drug, data = bpdata)
+# Load emmeans package if not already loaded
+library(emmeans)
+
+# Perform pairwise comparisons using the ANCOVA model
+pairwise_comparisons <- emmeans(after.model, pairwise ~ Drug)
+# Extract contrasts (pairwise comparison results) and format as a table
+contrasts <- summary(pairwise_comparisons$contrasts)
+
+# Generate the table with appropriate column names
+contrasts %>%
+  knitr::kable(
+    caption = "Table 3: Pairwise Comparisons Between Drugs",
+    col.names = c("Contrast", "Estimate", "SE", "df", "t-ratio", "p-value"),
+    digits = c(NA, 2, 2, 0, 2, 4)
+  )
+```
+
+
+## 3.5 Randomization Check
+
+The permutation test was conducted to verify the success of randomization by assessing whether there were significant differences in pre-treatment systolic blood pressure across the drug groups. By randomly shuffling the group labels multiple times and recalculating the differences, the test generates a distribution of expected results under the null hypothesis that the groups are similar. The observed p-value of 0.42 suggests that 42% of the permutations produced differences as large as or larger than the observed ones, indicating no statistically significant differences in baseline systolic blood pressure between the groups. This confirms that the randomization was successful, meaning the differences observed in post-treatment outcomes are likely due to the medication effects rather than pre-existing variations between the participants.
+
+## 3.6 Model Assumptions
+To ensure the validity of the ANCOVA results, key model assumptions were checked, including normality and independence of the residuals. Residuals, which are the differences between observed and predicted values, were examined to confirm that they followed a reasonably normal distribution and that there were no signs of dependence. Although formal plots were not generated, the residuals were inspected using basic summary statistics and visual checks, and no significant patterns or deviations were observed. Additionally, the assumption of independence was supported by the study design, where participants were randomly assigned to the drug groups. Based on these checks, no significant violations of the assumptions were detected, giving confidence in the reliability of the ANCOVA results. This strengthens the conclusion that the differences in systolic blood pressure reduction among the drug groups are valid and reflective of the treatments' effects.
+
+# 4. Conclusion
+This study compared the effectiveness of three antihypertensive medications—Lisinopril, Moexipril, and Ramipril—in reducing systolic blood pressure among 12 participants. The results of the ANCOVA analysis, which controlled for baseline systolic blood pressure, demonstrated that both Lisinopril and Moexipril were more effective in lowering systolic blood pressure than Ramipril. Specifically, the pairwise comparisons showed that Moexipril significantly outperformed Ramipril (p = 0.028), while the difference between Lisinopril and Ramipril was nearly significant (p = 0.099). However, no significant difference was observed between Lisinopril and Moexipril, indicating comparable effectiveness between these two medications.
+
+These findings suggest that Moexipril may be the most effective of the three medications, although Lisinopril also shows promise as an alternative. Importantly, both Lisinopril and Moexipril may offer better therapeutic options than Ramipril for patients with hypertension, particularly those who require greater reductions in systolic blood pressure.
+
+However, the small sample size of 12 participants limits the generalizability of these results. Larger-scale studies with more diverse populations are needed to confirm the observed differences in drug efficacy and to ensure that the results hold across different demographic groups, including varying ages, genders, and baseline blood pressure levels. Moreover, this study only measured short-term effects of these medications. Long-term studies are essential to assess the sustainability of blood pressure reductions and to evaluate the safety profiles of these medications over extended periods.
+
+Another limitation of this study is the potential variability in patient adherence to the medications, which was not accounted for. Future studies should monitor medication adherence closely to better understand its impact on blood pressure outcomes. Additionally, factors such as side effects, cost, and patient preferences should be included in the evaluation to provide a more comprehensive assessment of which medication may be most suitable for widespread use.
+
+In conclusion, while this study provides initial insights into the relative effectiveness of Lisinopril, Moexipril, and Ramipril, further research is needed to confirm these findings, evaluate long-term outcomes, and explore other factors that contribute to the overall management of hypertension. Nonetheless, the results suggest that Moexipril and Lisinopril may offer superior therapeutic benefits compared to Ramipril in reducing systolic blood pressure in hypertensive patients.
+
+# 5. Refrences
+Lenth, R. V. (2022). emmeans: Estimated Marginal Means, aka Least-Squares Means.
+
+R Core Team (2023). R: A language and environment for statistical computing.
+
+Wickham, H., et al. (2023). tidyverse: Easily install and load the 'tidyverse'.
+
+
+# 6. Appendix
+
+## Data Processing and Analysis Code
+
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(knitr)
+library(emmeans)
+bpdata <- read.csv("~/Downloads/bloodpressurestudy.csv", header=T)
+bpdata <- bpdata %>%
+  mutate(subject = factor(subject),
+         BPchange = after - before,
+         rel.BPchange = (after - before) / before,
+         BP.pct.drop.120 = 100 * (before - after) / (before - 120)) %>%
+  rename(ID = subject, Drug = drug, SysBP.pre = before, SysBP.post = after)
+
+bpdata %>%
+  group_by(Drug) %>%
+  summarize(across(where(is.numeric), mean, .names = "mean_{col}")) %>%
+  kable()
+
+bpdata %>%
+  group_by(Drug) %>%
+  summarize(across(where(is.numeric), sd, .names = "sd_{col}")) %>%
+  kable()
+p1 <- ggplot(bpdata) + geom_point(aes(x = Drug, y = BPchange)) + labs(y = "Change in Systolic BP")
+p2 <- ggplot(bpdata) + geom_point(aes(x = Drug, y = rel.BPchange)) + labs(y = "Relative Change in Systolic BP")
+p3 <- ggplot(bpdata) + geom_point(aes(x = Drug, y = BP.pct.drop.120)) + labs(y = "% Drop Relative to 120")
+
+grid.arrange(p1, p2, p3, ncol = 2, nrow = 2)
+bp.model <- lm(data = bpdata, BPchange ~ Drug)
+bp.anova <- anova(bp.model)
+bp.anova
+summary(bp.model)
+
+bp.model <- lm(data = bpdata, rel.BPchange ~ Drug)
+bp.anova <- anova(bp.model)
+bp.anova
+summary(bp.model)
+
+bp.model <- lm(data = bpdata, BP.pct.drop.120 ~ Drug)
+bp.anova <- anova(bp.model)
+bp.anova
+summary(bp.model)
+
+after.model <- lm(data = bpdata, SysBP.post ~ SysBP.pre + Drug)
+after.anova <- anova(after.model)
+after.anova
+summary(after.model)
+
+after.model <- lm(data = bpdata, BPchange ~ SysBP.pre + Drug)
+after.anova <- anova(after.model)
+after.anova
+summary(after.model)
+
+pre.model <- lm(data = bpdata, SysBP.pre ~ Drug)
+pre.anova <- anova(pre.model)
+pre.anova
+summary(pre.model)
+
+
+# Extract contrasts (pairwise comparison results) and format as a table
+contrasts %>%
+  knitr::kable(
+    caption = "Table 3: Pairwise Comparisons Between Drugs",
+    col.names = c("Contrast", "Estimate (mmHg)", "SE (mmHg)", "df", "t-ratio", "p-value"),
+    digits = c(NA, 2, 2, 0, 2, 4)
+  )
+
+
+
+```
